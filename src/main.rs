@@ -1,8 +1,6 @@
-#[macro_use] extern crate lazy_static;
-
 use std::fs::File;
 use std::io::{ Read, Write };
-use regex::Regex;
+use minmarkdown;
 
 fn main() {
   // reading test input file
@@ -11,38 +9,9 @@ fn main() {
   file.read_to_string(&mut input).expect("Unable to read input file.");
   let input = input; // make immutable
 
-  let mut output = String::new();
-  for line in input.lines() {
-    match line.len() {
-      0 => continue,
-      _ => {
-        output.push_str(&format_line(line));
-        output.push_str("\n");
-      }
-    }
-  }
+  let output = minmarkdown::to_html(&input);
+  let mut output_file = File::create("output.html").expect("Unable to create output file.");
+  output_file.write(output.as_bytes()).expect("Unable to write to output file.");
 
-  println!("{}", output);
-}
-
-fn format_line(line: &str) -> std::borrow::Cow<str> {
-  // only compile the regex once
-  lazy_static! {
-    static ref RE: Regex = Regex::new(r"\*\*(.*?)*\*\*").unwrap();
-  }
-
-  let line = RE.replace_all(line.trim(), "<strong>$1</strong>");
-
-
-  /*if line.contains("# ") {
-    return format!("<h1>{}</h1>\n", line.replace("# ", ""));
-  } else if line.contains("## ") {
-    return format!("<h2>{}</h2>\n", line.replace("## ", ""));
-  } else if line.contains("### ") {
-    return format!("<h3>{}</h3>\n", line.replace("### ", ""));
-  }
-
-  format!("<p>{}</p>\n", line)*/
-
-  line
+  println!("done");
 }

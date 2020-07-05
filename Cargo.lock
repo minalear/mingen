@@ -280,7 +280,13 @@ name = "mingen"
 version = "0.1.0"
 dependencies = [
  "criterion",
- "lazy_static",
+ "minmarkdown",
+]
+
+[[package]]
+name = "minmarkdown"
+version = "0.1.0"
+dependencies = [
  "regex",
 ]
 
