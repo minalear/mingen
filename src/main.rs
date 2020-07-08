@@ -10,7 +10,6 @@ use clap::Clap;
 // mingen server - launches server that shows live updates
 
 #[derive(Clap, Debug)]
-#[clap(name = "mingen")]
 enum Args {
   /// generate new mingen content
   New {
@@ -20,7 +19,8 @@ enum Args {
     /// name of the content
     #[clap(parse(from_os_str))]
     name: PathBuf
-  }
+  },
+  Gen
 }
 
 fn main() {
@@ -31,10 +31,19 @@ fn main() {
     } => {
       if site {
         // generate a new site project
-        mingen::gen_new_site(&name);
+        match mingen::gen_new_site(&name) {
+          Ok(_) => println!("New site created!"),
+          Err(e) => {
+            println!("Application error: {}", e);
+            std::process::exit(1);
+          }
+        }
       } else {
         // generate new content
       }
+    }, 
+    Args::Gen => {
+      
     }
   }
 
