@@ -8,6 +8,9 @@ edition = "2018"
 
 [dependencies]
 minmarkdown = { path = "../minmarkdown" }
+clap = "3.0.0-beta.1"
+toml = "0.5.6"
+serde = { version = "1.0.114", features = ["derive"] }
 
 [dev-dependencies]
 criterion = "0.3"
