@@ -3,27 +3,42 @@ use std::path::Path;
 use std::io::{ Read, Write };
 use serde::{ Serialize, Deserialize };
 
-#[derive(Debug)]
-pub struct Website {
-  name: String,
-  theme: String,
-  posts: Vec<Post>
-}
-
 #[derive(Serialize, Deserialize, Debug)]
 pub struct Config {
-  site_name: String,
-  site_theme: String,
-  site_author: String,
+  pub site_name: String,
+  pub site_theme: String,
+  pub site_author: String,
 }
 
 #[derive(Debug)]
+pub struct Website {
+  pub name: String,
+  pub theme: String,
+  pub posts: Vec<Post>
+}
+
+#[derive(Deserialize, Debug)]
 pub struct Post {
-  author: String,
-  pubdate: String,
-  title: String,
-  content: String,
-  draft: bool
+  pub title: String,
+  pub slug: String,
+  pub author: String,
+  pub pubdate: String,
+
+  #[serde(default)]
+  pub draft: bool,
+
+  #[serde(skip_deserializing)]
+  pub content: String
+}
+
+impl Config {
+  pub fn save_to_disk(&self, project_dir: &Path) -> Result<(), Box<dyn std::error::Error>> {
+    let toml = toml::to_string(&self)?;
+    let mut file = fs::File::create(project_dir.join("config.toml"))?;
+    file.write(toml.as_bytes())?;
+    
+    Ok(())
+  }
 }
 
 impl Website {
@@ -65,7 +80,20 @@ impl Website {
     
     let config: Config = toml::from_str(&config)?;
 
-    // TODO: Find all posts and add them to vector
+    let mut posts: Vec<Post> = vec![];
+    for entry in fs::read_dir(project_dir.join("content/"))? {
+      let entry = entry?;
+      let path = entry.path();
+
+      if path.is_dir() {
+        println!("Skipping {:?}", path);
+        continue; // TODO: Implement subdirectory generation
+      } else {
+        println!("processing {:?} ...", path);
+        posts.push(Post::from_file(&path)?);
+      }
+    }
+
     Ok(Website{
       name: config.site_name,
       theme: config.site_theme,
@@ -81,18 +109,50 @@ impl Website {
       fs::remove_dir_all(output_dir)?;
     }
 
+    // process posts
     
 
     Ok(())
   }
 }
 
-impl Config {
-  pub fn save_to_disk(&self, project_dir: &Path) -> Result<(), Box<dyn std::error::Error>> {
-    let toml = toml::to_string(&self)?;
-    let mut file = fs::File::create(project_dir.join("config.toml"))?;
-    file.write(toml.as_bytes())?;
-    
-    Ok(())
+impl Post {
+  pub fn from_file(path: &Path) -> Result<Post, Box<dyn std::error::Error>> {
+    // get the file contents into a string
+    let mut file = fs::File::open(path)?;
+    let mut file_content = String::new();
+    file.read_to_string(&mut file_content)?;
+    let file_content = file_content;
+
+    // scan the document and separate the metadata from the content body
+    let mut buffer = String::new();
+    let mut metadata = String::new();
+    let mut scanning_metadata = false;
+    for line in file_content.lines() {
+      // metadata is separated by a "---" section at the very top
+      if line.contains("---") {
+        match scanning_metadata {
+          true => {
+            metadata = buffer.clone();
+            buffer.clear();
+          },
+          false => scanning_metadata = true
+        }
+      } else {
+        buffer.push_str(line);
+        buffer.push_str("\n");
+      }
+    }
+
+    // ensure we have data to convert
+    if metadata.len() == 0 {
+      Err("Post is missing metadata.")?
+    }
+
+    // deserialize the metadata and clone the buffer into the post's contents
+    let mut post: Post = toml::from_str(&metadata)?;
+    post.content = buffer.clone();
+
+    Ok(post)
   }
 }

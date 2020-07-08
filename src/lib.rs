@@ -1,8 +1,11 @@
+#[macro_use]
+extern crate lazy_static;
+
 mod site;
 mod theme;
+mod template;
 
 use std::path::Path;
-
 
 /// Creates a new project with necessary file structure and config files
 pub fn gen_new_site(project_dir: &Path) -> Result<(), Box<dyn std::error::Error>> {
@@ -25,7 +28,7 @@ pub fn gen_site() -> Result<(), Box<dyn std::error::Error>> {
   let site = site::Website::from_project(&project_dir)?;
   println!("{:#?}", site);
 
-  site.generate(&project_dir);
+  site.generate(&project_dir)?;
 
   // go through each content page and assemble it into a site
   

@@ -1,5 +1,3 @@
-// use std::fs::File;
-// use std::io::{ Read, Write };
 use std::path::PathBuf;
 use clap::Clap;
 
@@ -44,6 +42,9 @@ fn main() {
     }, 
     Args::Gen => {
       match mingen::gen_site() {
+        Err(e) => {
+          println!("Application error: {}", e);
+        }
         _ => ()
       }
     }
