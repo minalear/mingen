@@ -1,8 +1,9 @@
 use std::fs;
 use std::path::Path;
-use std::io::Write;
+use std::io::{ Read, Write };
 use serde::{ Serialize, Deserialize };
 
+#[derive(Debug)]
 pub struct Website {
   name: String,
   theme: String,
@@ -16,6 +17,7 @@ pub struct Config {
   site_author: String,
 }
 
+#[derive(Debug)]
 pub struct Post {
   author: String,
   pubdate: String,
@@ -31,12 +33,14 @@ impl Website {
       project_dir.to_path_buf(),
       project_dir.join("content"),
       project_dir.join("partials"),
+      project_dir.join("static"),
       project_dir.join("static/styles"),
       project_dir.join("static/images"),
       project_dir.join("themes")
     ];
 
     for dir in directories.iter() {
+      // println!("creating directory {:?}...", dir);
       fs::create_dir(dir)?;
     }
 
@@ -54,8 +58,32 @@ impl Website {
     })
   }
 
-  pub fn from_project(project_dir: &Path) {
+  pub fn from_project(project_dir: &Path) -> Result<Website, Box<dyn std::error::Error>> {
+    let mut config_file = fs::File::open(project_dir.join("config.toml"))?;
+    let mut config = String::new();
+    config_file.read_to_string(&mut config)?;
+    
+    let config: Config = toml::from_str(&config)?;
 
+    // TODO: Find all posts and add them to vector
+    Ok(Website{
+      name: config.site_name,
+      theme: config.site_theme,
+      posts: vec![]
+    })
+  }
+
+  pub fn generate(&self, project_dir: &Path) -> Result<(), Box<dyn std::error::Error>> {
+    let output_dir = project_dir.join("output/");
+    
+    // delete any previous exports
+    if output_dir.exists() {
+      fs::remove_dir_all(output_dir)?;
+    }
+
+    
+
+    Ok(())
   }
 }
 

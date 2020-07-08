@@ -43,7 +43,9 @@ fn main() {
       }
     }, 
     Args::Gen => {
-      
+      match mingen::gen_site() {
+        _ => ()
+      }
     }
   }
 
