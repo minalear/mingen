@@ -1,5 +1,6 @@
 use crate::site::{ Post, Website };
 use regex::{ Regex, Captures};
+use minmarkdown;
 
 #[derive(Debug)]
 struct Loop {
@@ -129,7 +130,9 @@ fn format_line(line: &str, post: &Post, site: &Website) -> Result<String, Box<dy
   let format = POST_DRAFT.replace_all(&format, |_: &Captures| { 
     if post.draft { "true" } else { "false" }
   });
-  let format = POST_CONTENT.replace_all(&format, |_: &Captures| { &post.content });
+  let format = POST_CONTENT.replace_all(&format, |_: &Captures| { 
+    minmarkdown::to_html(&post.content)
+  });
 
   let format = String::from(format);
 
