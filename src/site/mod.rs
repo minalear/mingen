@@ -2,18 +2,22 @@ use std::fs;
 use std::path::Path;
 use std::io::{ Read, Write };
 use serde::{ Serialize, Deserialize };
+use crate::template;
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct Config {
   pub site_name: String,
   pub site_theme: String,
   pub site_author: String,
+  pub site_description: String,
 }
 
 #[derive(Debug)]
 pub struct Website {
   pub name: String,
   pub theme: String,
+  pub author: String,
+  pub description: String,
   pub posts: Vec<Post>
 }
 
@@ -62,13 +66,16 @@ impl Website {
     let config = Config {
       site_name: String::from("Website Name"),
       site_theme: String::from("default"),
-      site_author: String::from("First Last")
+      site_author: String::from("First Last"),
+      site_description: String::from("My website's description")
     };
     config.save_to_disk(project_dir)?;
     
     Ok(Website {
       name: config.site_name.clone(),
       theme: config.site_theme.clone(),
+      author: config.site_author.clone(),
+      description: config.site_description.clone(),
       posts: vec![]
     })
   }
@@ -97,7 +104,9 @@ impl Website {
     Ok(Website{
       name: config.site_name,
       theme: config.site_theme,
-      posts: vec![]
+      author: config.site_author,
+      description: config.site_description,
+      posts
     })
   }
 
@@ -106,11 +115,24 @@ impl Website {
     
     // delete any previous exports
     if output_dir.exists() {
-      fs::remove_dir_all(output_dir)?;
+      fs::remove_dir_all(&output_dir)?;
     }
+    fs::create_dir(&output_dir)?;
+
+    // get template from theme
+    let mut file = fs::File::open(project_dir.join(format!("themes/{}/partials/post.html", self.theme)))?;
+    let mut template = String::new();
+    file.read_to_string(&mut template)?;
+    let template = template;
 
     // process posts
-    
+    for post in self.posts.iter() {
+      let html = template::parse(&post, &self, &template)?;
+      let path = output_dir.join(format!("{}.html", post.slug));
+      println!("creating {:#?}", path);
+      let mut out_file = fs::File::create(&path)?;
+      out_file.write_all(html.as_bytes())?;
+    }
 
     Ok(())
   }

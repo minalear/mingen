@@ -26,11 +26,7 @@ pub fn gen_site() -> Result<(), Box<dyn std::error::Error>> {
   }
 
   let site = site::Website::from_project(&project_dir)?;
-  println!("{:#?}", site);
-
   site.generate(&project_dir)?;
-
-  // go through each content page and assemble it into a site
   
   Ok(())
 }
