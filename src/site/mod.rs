@@ -154,6 +154,31 @@ impl Website {
       }
     }
 
+    // then get template files from the project's partials, overriding any themes
+    for file in fs::read_dir(project_dir.join("partials/"))? {
+      let file = file?;
+      let path = file.path();
+
+      if path.is_dir() {
+        // TODO: Implement subdirectory template gathering
+        continue;
+      } else {
+        // insert the template into the hashmap, overriding any existing ones
+        println!("Found {:?} template in project.", path);
+        let file_name = path.file_name().unwrap();
+        let template_name = String::from(file_name.to_str().unwrap());
+
+        let mut template_contents = String::new();
+        let mut file = fs::File::open(&path)?;
+        file.read_to_string(&mut template_contents)?;
+
+        match templates.insert(template_name, template_contents) {
+          Some(_) => println!("Over writing theme template {:?}", file_name),
+          None => ()
+        };
+      }
+    }
+
     // get template from theme
     /* let mut file = fs::File::open(project_dir.join(format!("themes/{}/partials/{}.html", self.theme, sel)))?;
     let mut template = String::new();
