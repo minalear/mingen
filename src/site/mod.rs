@@ -1,6 +1,7 @@
 use std::fs;
 use std::path::Path;
 use std::io::{ Read, Write };
+use std::collections::HashMap;
 use serde::{ Serialize, Deserialize };
 use crate::template;
 
@@ -31,8 +32,16 @@ pub struct Post {
   #[serde(default)]
   pub draft: bool,
 
+  #[serde(default = "default_template")]
+  pub template: String,
+
   #[serde(skip_deserializing)]
   pub content: String
+}
+
+// serde default values
+fn default_template() -> String {
+  "post.html".to_string()
 }
 
 impl Config {
@@ -119,14 +128,47 @@ impl Website {
     }
     fs::create_dir(&output_dir)?;
 
+    // build a hashmap of all the template files
+    let mut templates = HashMap::new();
+
+    // first get template files from the theme
+    let theme_dir = project_dir.join(format!("themes/{}/", self.theme));
+    for file in fs::read_dir(theme_dir.join("partials/"))? {
+      let file = file?;
+      let path = file.path();
+
+      if path.is_dir() {
+        // TODO: Implement subdirectory template gathering
+        continue;
+      } else {
+        // insert the template into the hashmap keyed by the filename
+        println!("Found {:?} template in theme.", path);
+        let file_name = path.file_name().unwrap();
+        let template_name = String::from(file_name.to_str().unwrap());
+
+        let mut template_contents = String::new();
+        let mut file = fs::File::open(path)?;
+        file.read_to_string(&mut template_contents)?;
+
+        templates.insert(template_name, template_contents);
+      }
+    }
+
     // get template from theme
-    let mut file = fs::File::open(project_dir.join(format!("themes/{}/partials/post.html", self.theme)))?;
+    /* let mut file = fs::File::open(project_dir.join(format!("themes/{}/partials/{}.html", self.theme, sel)))?;
     let mut template = String::new();
     file.read_to_string(&mut template)?;
-    let template = template;
+    let template = template; */
 
     // process posts
     for post in self.posts.iter() {
+      // find the template in the hashmap, otherwise error out
+      let template = match templates.get(&post.template) {
+        Some(v) => v,
+        None => return Err(format!("Missing template {}", post.template))?
+        // TODO: Either error out and stop generation or skip
+      };
+
       let html = template::parse(&post, &self, &template)?;
       let path = output_dir.join(format!("{}.html", post.slug));
       println!("creating {:#?}", path);
